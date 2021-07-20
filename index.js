@@ -1,5 +1,6 @@
 const form = document.querySelector('form');
 const list = document.querySelector('ul');
+const display = document.querySelector('.list');
 const taskTitle = document.querySelector('#task-title');
 const time = document.querySelector('#time');
 const day = document.querySelector('#day');
@@ -18,7 +19,7 @@ window.onload = function() {
   request.onsuccess = function(e) {
     console.log('Database opened successfully.');
     db = e.target.result;
-    //displayData();
+    displayData();
   } 
 
   request.onerror = function() {
@@ -32,9 +33,9 @@ window.onload = function() {
 
   //initialising database or upgrading it
   request.onupgradeneeded = function(e) {
-    db = e.target.request;
+    db = e.target.result;
 
-    var objectStore = db.createObjectStore('toDoList', {keyPath: 'task', autoIncrement: true });
+    var objectStore = db.createObjectStore('toDoList', {keyPath: 'task'});
 
     objectStore.createIndex('taskTitle', 'taskTitle', {unique: false});
     objectStore.createIndex('time', 'time', {unique: false});
@@ -45,24 +46,60 @@ window.onload = function() {
     console.log('Database setup completed.');
     console.log(objectStore);
   
-
+    function displayData() {
+      while (list.firstChild) {
+        list.removeChild(list.firstChild);
+      }
+  
+      var transaction = db.transaction('toDoList', 'readonly');
+      var objectStore = transaction.objectStore('toDoList');
+      var request = objectStore.openCursor();
+  
+      request.onsuccess = function(e) {
+        var cursor = e.target.result;
+  
+        if (cursor) {
+          let li = document.createElement('li');
+          let para = document.createElement('p');
+  
+          display.appendChild(list);
+          list.appendChild(li);
+          li.appendChild(para);
+          
+          para.textContent = cursor.value.taskTitle + '_ at:' + cursor.value.time + cursor.value.month + cursor.value.day + cursor.value.year; 
+  
+          const deleteBtn = createElement('button');
+          para.appendChild(deleteBtn);
+          deleteBtn.textContent = 'X';
+  
+          deleteBtn.onclick = deleteTask;
+  
+          cursor.continue();
+        } 
+  
+        
+      }
+  
+  
+    }  
+    
   form.onsubmit = addData;
    
 
   function addData(e) {
     e.preventDefualt();
 
-    let data = 
+    let data = [ 
       { taskTitle: taskTitle.value, 
         time: time.value, 
         day: day.value, 
         month: month.value,
         year: year.value 
-      };
+      }];
 
     let transaction = db.transaction(['toDoList'], 'readwrite');
     let objectStore = transaction.objectStore('toDoList');
-    let request = objectStore.add(data);
+    let request = objectStore.add(data[0]);
 
     request.onsuccess = function() {
       taskTitle.value = '';
@@ -82,9 +119,7 @@ window.onload = function() {
      
   }
 
-  function displayData() {
-
-  }
+  
 
 } 
     
